@@ -1,6 +1,4 @@
-*&---------------------------------------------------------------------*
-*&  Include           ZBOM_PRD_ALV
-*&---------------------------------------------------------------------*
+
 class : cl_evnt definition deferred.
 
 data  : wa_scat type slis_fieldcat_alv,
