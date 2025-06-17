@@ -1,0 +1,222 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZMAT_DTLS_DET
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Form  GET_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM get_data .
+  sort it_mslb by matnr .
+  delete adjacent duplicates from it_mslb comparing matnr .
+  data : LO_CLNT    Type Ref To IF_HTTP_CLIENT.
+
+ loop at it_mslb into wa_mslb.
+     wa_jdat-matnr = wa_mslb-matnr.
+     append : wa_jdat to it_temp .
+     CLEAR :wa_jdat.
+ endloop.
+DESCRIBE TABLE it_temp LINES lv_lines.
+remind   =  lv_Lines mod 200 .
+division  =  lv_lines / 200 .
+
+ind = 1.
+
+*    do division TIMES .
+      LOOP AT it_temp into wa_jdat FROM ind.
+        at first .
+          clear  ind .
+          ENDAT .
+        ind = ind + 1.
+        cnt = cnt + 1.
+     append wa_jdat to it_jdat .
+   if cnt = 200 .
+    if sy-sysid eq 'QAS'.
+        wa_json = zcl_scp_qa=>get_data( exporting im_objty = 'VS' im_objky = it_jdat ).
+        zcl_scp_qa=>get_resp( RECEIVING rt_resp = wa_resp ) .
+        zcl_scp_qa=>json_to_data( EXPORTING  im_json = wa_resp CHANGING rt_data = it_data ).
+        zcl_scp=>json_to_data( EXPORTING  im_json = wa_resp CHANGING rt_data = it_temp1 ).
+     elseif sy-sysid eq 'PRD'.
+        wa_json = zcl_scp=>get_data( exporting im_objty = 'VS' im_objky = it_jdat ).
+        zcl_scp=>get_resp( RECEIVING rt_resp = wa_resp ) .
+        zcl_scp=>json_to_data( EXPORTING  im_json = wa_resp CHANGING rt_data = it_data ).
+
+     endif .
+      refresh : it_jdat.
+      clear : wa_json.
+    if it_data is BOUND .
+      ASSIGN it_data->* TO <data>.
+      ASSIGN COMPONENT 'VENDORSTOCK' OF STRUCTURE <data> TO <results>.
+      ASSIGN <results>->* TO <table>.
+
+      LOOP AT <table> ASSIGNING <structure>.
+        ASSIGN <structure>->* TO <data>.
+        ASSIGN COMPONENT 'BALQT' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-BALQT = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'CHARG' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-CHARG = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'CNFPQTY' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-CNFPQTY = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'EBELN' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-EBELN = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'FG_CODE' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-FG_CODE = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'SHTQT' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-SHTQT = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+        ASSIGN COMPONENT 'FKDAT' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-FKDAT = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'LIFNR' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-LIFNR = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'MATNR' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-MATNR = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'MENGE' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-MENGE = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'OPEN_MDNQTY' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-OPEN_MDNQTY = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'STATUS' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-STATUS = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+
+        ASSIGN COMPONENT 'VBELN' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-VBELN = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+          ASSIGN COMPONENT 'EBELP' OF STRUCTURE <data> TO <field>.
+         IF <field> IS ASSIGNED.
+           it_data = <field>.
+           ASSIGN it_data->* TO <field_value>.
+           wa_data-ebelp = <field_value>.
+         ENDIF.
+         UNASSIGN: <field>, <field_value>.
+         APPEND wa_data TO it_final.
+        CLEAR wa_data.
+      ENDLOOP.
+        clear : it_data, <data> ,cnt.
+    ENDIF.
+  endif.
+ ENDLOOP.
+
+* ENDDO .
+  refresh : it_jdat.
+ind = ind - remind  .
+ LOOP AT it_temp into wa_jdat from ind .
+   append wa_jdat to it_jdat .
+   at last .
+     perform jsn USING it_jdat .
+   ENDAT.
+ ENDLOOP.
+
+   if  s_werks is not initial and s_matnr is INITIAL and s_lifnr is INITIAL .
+      DELETE from zmat_dtl .
+      COMMIT work .
+
+    endif .
+
+loop at it_final into wa_data.
+ if  s_werks is not initial and s_matnr is not initial or  s_werks is not initial and s_lifnr is not initial . .
+   lcl=>conv_op( exporting ip = wa_data-matnr  importing op = wa_data-matnr  ) .
+      delete from zmat_dtl where matnr = wa_data-matnr .
+ endif .
+endloop.
+
+
+ LOOP AT  it_final into wa_data .
+    wa_zmat-vbeln       =  wa_data-vbeln         .
+    wa_zmat-FKDAT       =  wa_data-FKDAT         .
+    wa_zmat-LIFNR       =  wa_data-LIFNR         .
+    wa_zmat-MATNR       =  wa_data-MATNR         .
+    wa_zmat-CHARG       =  wa_data-CHARG         .
+    wa_zmat-MENGE       =  wa_data-MENGE         .
+    wa_zmat-EBELN       =  wa_data-EBELN         .
+    wa_zmat-EBELP       =  wa_data-EBELP         .
+    wa_zmat-FG_Code     =  wa_data-FG_Code       .
+    wa_zmat-SHTQT       =  wa_data-SHTQT.
+    wa_zmat-BALQT       =  wa_data-BALQT         .
+    wa_zmat-CNFPQTY     =  wa_data-CNFPQTY       .
+    wa_zmat-Open_MDNQTY =  wa_data-Open_MDNQTY   .
+    wa_zmat-STATUS      =  wa_data-STATUS        .
+
+  lcl=>conv_op( exporting ip = wa_zmat-matnr importing op = wa_zmat-matnr ) .
+  lcl=>conv_op( exporting ip = wa_zmat-lifnr importing op = wa_zmat-lifnr ) .
+    insert zmat_dtl from wa_zmat .
+    CLEAR wa_zmat .
+ ENDLOOP.
+
+
+
+ENDFORM.
