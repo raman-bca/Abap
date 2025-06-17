@@ -1,4 +1,83 @@
 *&---------------------------------------------------------------------*
+*&  Include           ZMAT_DTLS_TOP
+*&---------------------------------------------------------------------*
+data: it_mslb type TABLE OF mslb,
+      wa_mslb type mslb ,
+      wa_json type string,
+      wa_resp type string,
+      wa_resp1 type string.
+
+data : begin of wa_jdat,
+         matnr like mseg-matnr,
+       end of wa_jdat.
+
+data: it_jdat like table of wa_jdat,
+      it_temp like TABLE OF wa_jdat,
+      it_zmat type TABLE OF ZMAT_DTL,
+      wa_zmat type ZMAT_DTL.
+data :  cnt TYPE int4 ,
+        lv_lines TYPE int4 ,
+        ind      TYPE int4 ,
+        remind   TYPE int4 ,
+        division TYPE int4 .
+types :
+      BEGIN OF wa_data,
+      vbeln       type string,
+      FKDAT       type string,
+      LIFNR       type string,
+      MATNR       type string,
+      CHARG       type string,
+      MENGE       type string,
+      EBELN       type string,
+      EBELP       type string,
+      FG_Code     type string,
+      SHTQT       type string,
+      BALQT       type string,
+      CNFPQTY     type string,
+      Open_MDNQTY type string,
+      STATUS      type string,
+   END OF wa_data.
+
+ types :
+      results TYPE STANDARD TABLE OF wa_data WITH EMPTY KEY.
+ types : begin of ty_scjsn,
+      token type string,
+      "stat  type string,
+      data  type results,
+    end of ty_scjsn .
+
+data: it_temp1 type ty_scjsn  .
+data : it_final type  TABLE OF wa_data.
+
+   data : it_data TYPE REF TO data,
+          wa_data type wa_data .
+   FIELD-SYMBOLS:
+  <data>        TYPE data,
+  <results>     TYPE any,
+  <structure>   TYPE any,
+  <table>       TYPE ANY TABLE,
+  <field>       TYPE any,
+  <field_value> TYPE data.
+
+   class lcl DEFINITION.
+    public SECTION.
+     class-methods:  conv_op importing ip type CLIKE
+                              EXPORTING op type clike .
+
+   ENDCLASS .
+
+  class lcl IMPLEMENTATION .
+   METHOD : conv_op .
+    CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
+       EXPORTING
+         input  = ip
+       IMPORTING
+         output = op.
+  ENDMETHOD .
+ endclass.
+
+
+*&---------------------------------------------------------------------*
 *&  Include           ZMAT_DTLS_DET
 *&---------------------------------------------------------------------*
 *&---------------------------------------------------------------------*
