@@ -1,0 +1,302 @@
+
+LOOP AT it_disp into wa_disp.
+if wa_disp-TOL_RM_COSUP le '5.00' and wa_disp-TOL_RM_COSUP ge '0.00' .
+    delete it_disp WHERE mblnr = wa_disp-mblnr .
+endif .
+*if wa_disp-TOL_RM_COSUP ge '5.00-' and wa_disp-TOL_RM_COSUP ge '0.00' .
+if  wa_disp-TOL_RM_COSUP BETWEEN '5.00-' and '0.00'.
+    delete it_disp WHERE mblnr = wa_disp-mblnr .
+endif .
+
+ENDLOOP.
+
+
+if it_disp is not INITIAL .
+
+  DATA : wa_hdrd LIKE soodk,
+         wa_addr TYPE string,
+         wa_tadd TYPE sodm1.
+
+  DATA : sp_succ TYPE boolean,
+         sp_subj TYPE so_obj_des,
+         to_addr TYPE string_table,
+         cc_addr TYPE string_table.
+
+  DATA : lv_reslt TYPE boolean,
+         lv_uname TYPE sood-ownnam.
+
+  DATA : it_para LIKE TABLE OF selc,
+         it_parb LIKE TABLE OF soop1,
+         it_tadd LIKE TABLE OF sodm1.
+
+  DATA : wa_comp TYPE abap_compdescr,
+         wa_xlsx LIKE alsmex_tabline.
+
+  DATA : lv_index TYPE i,
+         lv_srnum TYPE i,
+         lv_ocode TYPE c,
+         lv_cprog TYPE sy-cprog,
+         lr_descr TYPE REF TO cl_abap_structdescr.
+DATA: subject TYPE so_obj_des. "string.
+  DATA : lv_xlsx TYPE string,
+         lv_data TYPE string,
+         lv_xrow TYPE string,
+         lo_send TYPE REF TO cl_sapuser_bcs,
+         lv_crlf TYPE c VALUE cl_abap_char_utilities=>newline,
+         lv_ctab TYPE c VALUE cl_abap_char_utilities=>horizontal_tab.
+ DATA: binary_content   TYPE solix_tab.
+  DATA : it_scat TYPE slis_t_fieldcat_alv.
+
+  DATA : wa_fcat TYPE lvc_s_fcat,
+         it_fcat LIKE TABLE OF wa_fcat.
+
+  FIELD-SYMBOLS <field>   TYPE any.
+  FIELD-SYMBOLS <wa_disp> LIKE wa_disp.
+
+  CONSTANTS : lv_excol TYPE string VALUE 'index,selct,srnum,style,selct,xicon'.
+DATA: l_send_request   TYPE REF TO cl_bcs,                              " Send request
+        l_body           TYPE bcsy_text,                                  " Mail body
+        l_attach         TYPE bcsy_text,                                  " Attachment
+        wa_text          TYPE soli,                                       " Work area for attach
+        l_document       TYPE REF TO cl_document_bcs,                     " Mail body
+        lo_sender        TYPE REF TO if_sender_bcs VALUE IS INITIAL,      " Sender address
+        l_recipient      TYPE REF TO if_recipient_bcs,                    " Recipient
+        l_recipient1     TYPE REF TO if_recipient_bcs,                    " Recipient
+        l_email          TYPE ad_smtpadr,                                 " Email ID
+        l_extension      TYPE soodk-objtp VALUE 'OTF',                    " TXT format
+        l_size           TYPE so_obj_len,                      " Size of Attachment
+        l_lines          TYPE i,
+        lx_document_bcs  TYPE REF TO cx_document_bcs,
+        lx_bcs_exception TYPE REF TO cx_bcs,
+        lo_cdoc  type ref to cl_document_bcs,
+        lx_cdoc  type ref to cx_document_bcs.
+
+ loop at it_fcat into wa_fcat.
+    search lv_excol for wa_fcat-fieldname.
+    if sy-subrc <> 0.
+      if lv_xlsx is not initial.
+        concatenate lv_xlsx wa_fcat-reptext into lv_xlsx separated by lv_ctab.
+      else.
+        lv_xlsx = wa_fcat-reptext.
+      endif.
+    endif.
+  endloop.
+  lr_descr ?= cl_abap_typedescr=>describe_by_data( wa_disp ).
+  loop at it_disp assigning <wa_disp>.
+    clear : lv_xrow.
+    loop at lr_descr->components into wa_comp.
+      search lv_excol for wa_comp-name.
+      if sy-subrc <> 0.
+        assign component wa_comp-name of structure <wa_disp> to <field>.
+        lv_data = <field>.
+        if lv_xrow is not initial.
+          concatenate lv_xrow lv_data into lv_xrow separated by lv_ctab.
+        else.
+          lv_xrow = lv_data.
+        endif.
+      endif.
+    endloop.
+    concatenate lv_xlsx lv_xrow into lv_xlsx separated by lv_crlf.
+  endloop.
+ sp_subj =   |'BOM PRD REPORT'|.
+   perform read_body.
+data : it_automail like table of zauto_mail,
+       wa_automail like zauto_mail.
+data :  dl_list  type SO_OBJ_NAM,
+        it_bind type solix_tab,
+        lv_size type sood-objlen,
+          gv_xstring TYPE xstring.
+
+    CALL FUNCTION 'HR_KR_STRING_TO_XSTRING'
+    EXPORTING
+      codepage_to      = '8300'
+      unicode_string   = lv_xlsx
+*     OUT_LEN          =
+    IMPORTING
+      xstring_stream   = gv_xstring
+    EXCEPTIONS
+      invalid_codepage = 1
+      invalid_string   = 2
+      OTHERS           = 3.
+
+      IF sy-subrc <> 0.
+*  Implement suitable error handling here
+  ENDIF.
+ SELECT      mandt
+             prog_name
+             bukrs
+             werks
+             frm_mailid
+             dist_list
+          FROM zauto_mail
+          INTO TABLE it_automail
+          where  prog_name EQ 'ZBOM_PRD'.
+
+     CALL METHOD cl_bcs_convert=>xstring_to_solix
+    EXPORTING
+      iv_xstring = gv_xstring
+    RECEIVING
+      et_solix   = binary_content.
+  TRY  .
+read table it_automail into wa_automail index 1.
+     dl_list = wa_automail-dist_list.
+
+*    ******** Sender address code ***************
+      lo_sender = cl_cam_address_bcs=>create_internet_address( 'nilkanth.more@simmondsmarshall.com' ).
+      l_send_request = cl_bcs=>create_persistent( ).
+      l_document = cl_document_bcs=>create_document(
+                   i_type    = 'HTM'  "'RAW'
+                   i_text    = it_body "l_body
+                   i_subject = sp_subj ).
+
+
+       l_document->add_attachment(
+      i_attachment_type    = 'xls'
+      i_attachment_subject = sp_subj
+      i_attachment_size    = L_size
+      i_att_content_hex    = binary_content ).
+
+
+
+      CALL METHOD l_send_request->set_document( l_document ).
+
+*** Set Distribution list for email ID's **
+      l_recipient1 = cl_distributionlist_bcs=>getu_persistent(  i_dliname = dl_list
+                                                                i_private = space ).
+************ Reciepient address addition code ***********
+      CALL METHOD l_send_request->add_recipient
+        EXPORTING
+          i_recipient  = l_recipient1
+          i_express    = 'X'
+          i_copy       = 'X'
+          i_blind_copy = ' '
+          i_no_forward = ' '.
+
+      l_send_request->set_status_attributes( i_requested_status = 'E'  ).
+*Send mail
+      CALL METHOD l_send_request->send( ).
+      COMMIT WORK AND WAIT.
+      MESSAGE 'Mail Sent Successfully' TYPE 'S'.
+    CATCH cx_bcs INTO lx_bcs_exception.
+
+  ENDTRY.
+  clear : wa_body, it_body.
+
+endif .
+ENDFORM .
+*&---------------------------------------------------------------------*
+*&      Form  READ_BODY
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM read_body .
+
+  wa_body = '<p>Dear Sir/Madam,</p>'.
+  append wa_body to it_body.
+  wa_body = space.
+  append wa_body to it_body.
+  wa_body = '<p>Please find attached report of data contains details of BOM Prd Report.</p>'.
+  append wa_body to it_body.
+  wa_body = space.
+  append wa_body to it_body.
+*  wa_body = '<p>Regard,</p>'.
+*  append wa_body to it_body.
+*  wa_body = '<p>SAP Team</p>'.
+*  append wa_body to it_body.
+*  wa_body = space.
+*  append wa_body to it_body.
+*  wa_body = space.
+*  append wa_body to it_body.
+*  wa_body = '<p>Note : This is auto generated Email, do not reply on this mail.</p>'.
+*  append wa_body to it_body.
+
+      wa_body = '<table width = "100%" border = "2" >'.
+      APPEND wa_body TO it_body.
+      CLEAR : wa_body.
+
+      CONCATENATE  '<th align="Left" >' '<b>' '<font face="Verdana" size="1" COLOR="Black" >'
+                  'Order NO' '</font> </td>' INTO wa_body.
+      APPEND wa_body TO it_body.
+      CLEAR : wa_body.
+
+      CONCATENATE  '<th align="Left">' '<b>' '<font face="Verdana" size="1" COLOR="Black" >'
+              'Type' '</font> </td>' INTO wa_body.
+      APPEND wa_body TO it_body.
+      CLEAR : wa_body.
+*****
+      CONCATENATE  '<th align="Left">' '<b>' '<font face="Verdana" size="1" COLOR="Black" >'
+              'Material 101' '</font> </td>' INTO wa_body.
+      APPEND wa_body TO it_body.
+      CLEAR : wa_body.
+            CONCATENATE  '<th align="Left">' '<b>' '<font face="Verdana" size="1" COLOR="Black" >'
+              'Material 261' '</font> </td>' INTO wa_body.
+      APPEND wa_body TO it_body.
+      CLEAR : wa_body.
+
+            CONCATENATE  '<th align="Left">' '<b>' '<font face="Verdana" size="1" COLOR="Black" >'
+              'Tolerance for RM Consumo' '</font> </td>' '</tr>'INTO wa_body.
+
+      APPEND wa_body TO it_body.
+      CLEAR : wa_body.
+
+LOOP AT it_disp into wa_disp.
+
+            order_no     = wa_disp-aufnr .
+            type         = wa_disp-AUART.
+            material_101 =    wa_disp-matnr101.
+            material_261 =    wa_disp-matnr261.
+            toler_rm     =    wa_disp-TOL_RM_COSUP.
+
+*        CONCATENATE '<tr style="background-color:#FFFFFF;"' '>'  INTO wa_body-line. APPEND wa_body TO it_body.
+
+                CONCATENATE  '<tr style="background-color:#eeeeee;"><td>'
+               Order_NO '</font> </td>'   INTO wa_body.
+        APPEND wa_body TO it_body.
+        CLEAR : wa_body.
+                CONCATENATE  '<td>'
+               type  '</td>'  INTO wa_body.
+        APPEND wa_body TO it_body.
+        CLEAR : wa_body.
+
+                         CONCATENATE '<td>'
+              material_101 '</td>'   INTO wa_body.
+        APPEND wa_body TO it_body.
+        CLEAR : wa_body.
+
+                         CONCATENATE  '<td>'
+               material_261 '</fo </td>'   INTO wa_body.
+        APPEND wa_body TO it_body.
+        CLEAR : wa_body.
+
+                          CONCATENATE '<td>'
+               toler_rm  ' </td>' '</tr>'  INTO wa_body.
+        APPEND wa_body TO it_body.
+        CLEAR : wa_body.
+
+
+
+        CLEAR :  order_no    ,
+                 type        ,
+                 material_101,
+                 material_261,
+                 toler_rm    .
+endloop .
+
+      wa_body = '</table></br></br> </tbody> '.
+
+      APPEND wa_body TO it_body.
+      CLEAR : wa_body.
+      wa_body = '<p>Regard,</p>'.
+  append wa_body to it_body.
+  wa_body = '<p>SAP Team</p>'.
+  append wa_body to it_body.
+  wa_body = space.
+  append wa_body to it_body.
+  wa_body = space.
+  append wa_body to it_body.
+  wa_body = '<p>Note : This is auto generated Email, do not reply on this mail.</p>'.
+  append wa_body to it_body.
+ENDFORM.
