@@ -1,0 +1,30 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZQR_PRO_SEL
+*&---------------------------------------------------------------------*
+START-OF-SELECTION .
+SELECT
+       PLANT
+       STAGECODE
+       BATCH
+       DOCDATe
+       matcd
+       TRNDATE
+  FROM zdtrn  INTO  TABLE it_zdat
+  WHERE batch in s_batch
+  and   stagecode =  '15'
+  and   plant = s_werks and TRNDATE in s_date
+  .
+ IF s_matnr is not INITIAL.
+  delete  it_zdat WHERE matcd ne s_matnr .
+  ENDIF.
+SELECT
+       ZWERKS
+       ZMATNR
+       ZSIZE
+       ZTYPE
+       ZCOLOR
+       ZLENGTH
+       ZCUST_CODE
+  from ZQR_MAT_DTLS into TABLE it_zqr
+  FOR ALL ENTRIES IN it_zdat
+  WHERE zmatnr = it_zdat-matcd.

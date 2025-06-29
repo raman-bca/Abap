@@ -1,0 +1,13 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZQR_DRAFT_SCR
+*&---------------------------------------------------------------------*
+TABLES zqr_ipallet .
+SELECT-OPTIONS : s_palid for zqr_ipallet-PALID no INTERVALS  .
+        PARAMETERS : s_date  TYPE sy-datum   .
+*   PARAMETERS : s_check as CHECKBOX .
+
+*   AT SELECTION-SCREEN .
+*     if s_check = 'X'.
+*       Submit ZQR_DRAFT_SUMMARY with   s_palid in s_palid
+*                                WITH   s_date = s_date  and RETURN .
+*   ENDIF .

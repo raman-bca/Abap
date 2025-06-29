@@ -1,0 +1,38 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZQR_DRAFT_SUMMARY_SCR
+*&---------------------------------------------------------------------*
+TABLES zqr_ipallet .
+
+data :  wa_retn  LIKE ddshretval,
+        it_retn  LIKE TABLE OF wa_retn,
+        it_fmap  like standard table of dselc,
+        wa_fmap  like line of it_fmap
+        .
+
+
+data : begin of ls_dmat,
+*       COILNO  like zqr_ipallet-COILNO ,
+       PALID   like zqr_ipallet-PALID  ,
+       MATNR   like zqr_ipallet-MATNR  ,
+
+  END OF ls_dmat.
+
+  DATA : IT_PAL LIKE TABLE OF LS_DMAT ,
+         WA_PAL LIKE LS_DMAT .
+
+     data: lt_dmat like standard table of ls_dmat.
+      data :it_dynp like standard table of dynpread,
+            wa_dynp like line of it_dynp.
+
+SELECT-OPTIONS : s_palid for zqr_ipallet-PALID NO INTERVALS .
+   PARAMETERS  : s_date TYPE sy-datum OBLIGATORY .
+        PARAMETERS: s_check as CHECKBOX .
+ AT SELECTION-SCREEN ON VALUE-REQUEST FOR S_PALID-LOW .
+    PERFORM GET_DATA .
+
+
+AT SELECTION-SCREEN.
+     if s_check = 'X'.
+    Submit ZQR_DRAFT WITH s_palid in s_palid WITH s_date = s_date AND RETURN .
+    LEAVE to TRANSACTION 'ZQR_DRAFT'.
+   ENDIF .

@@ -1,0 +1,140 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZQR_PRO_DET
+*&---------------------------------------------------------------------*
+REFRESH : it_disp  .
+LOOP AT it_zdat  INTO wa_dat  .
+READ TABLE it_zqr into wa_zqr with key zmatnr = wa_dat-matcd .
+wa_disp-CHARG       = wa_dat-BATCH      .
+wa_disp-ERSDA       = wa_dat-TRNDATE    .
+wa_disp-ZSIZE       = wa_zqr-ZSIZE      .
+wa_disp-ZTYPE       = wa_zqr-ZTYPE      .
+wa_disp-ZCOLOR      = wa_zqr-ZCOLOR     .
+wa_disp-ZLENGTH     = wa_zqr-ZLENGTH    .
+wa_disp-ZCUSTCODE   = wa_zqr-ZCUST_CODE .
+wa_disp-matcd       = wa_dat-matcd      .
+
+data year type char4 .
+CALL FUNCTION 'HR_IN_GET_DATE_COMPONENTS'
+  EXPORTING
+    IDATE                               = wa_disp-ERSDA
+ IMPORTING
+*   DAY                                 = DAY
+*   MONTH                               = month
+   YEAR                                = year
+*   STEXT                               =
+*   LTEXT                               =
+*   USERDATE                            =
+ EXCEPTIONS
+   INPUT_DATE_IS_INITIAL               = 1
+   TEXT_FOR_MONTH_NOT_MAINTAINED       = 2
+   OTHERS                              = 3
+          .
+IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+ENDIF.
+ wa_disp-zyear = year .
+*CONDENSE wa_disp-zlength.
+IF wa_disp-zlength eq '0'.
+  wa_disp-zlength = s_length .
+ENDIF .
+ APPEND wa_disp to it_disp .
+CLEAR : wa_dat , year , wa_zqr .
+ENDLOOP.
+call function 'SSF_FUNCTION_MODULE_NAME'
+    exporting
+      formname           = 'ZQR_PRO'
+    importing
+      fm_name            = fm_name
+    exceptions
+      no_form            = 1
+      no_function_module = 2
+      others             = 3.
+sort it_disp by CHARG ASCENDING. ""RAMAN ZENCON 1.17.2024
+LOOP AT it_disp INTO wa_disp.
+DESCRIBE TABLE it_disp lines CNT.
+
+if cnt = '1' .
+   LS_PARAMETERS-NO_DIALOG = 'X'.
+   ls_parameters-PREVIEW   = 'X'.
+   LS_OPTIONS-TDDest       = 'LOCA'.
+   LS_OPTIONS-TDIEXIT      = 'X'.
+
+ELSe.
+   LS_PARAMETERS-NO_OPEN  = 'X'.
+   LS_PARAMETERS-NO_CLOSE = 'X'.
+
+  AT FIRST.
+    LS_PARAMETERS-NO_OPEN  = SPACE.
+    LS_PARAMETERS-NO_CLOSE = 'X'.
+  ENDAT.
+
+  AT LAST .
+    LS_PARAMETERS-NO_OPEN  = 'X'.
+    LS_PARAMETERS-NO_CLOSE = SPACE.
+  ENDAT.
+
+
+*  LS_OPTIONS-tdprinter = dev .
+   LS_OPTIONS-TDIEXIT = 'X'.
+   LS_OPTIONS-Tdarmod = 1.
+* LS_PARAMETERS-GETOTF = 'X'. *LS_options-tdnoprev = 'X'.
+* LS_options-tdnewid = 'X'.
+* LS_options-tdimmed = 'X'.
+*LS_options-tddelete = 'X'.
+*
+* LS_options-tddest = 'SAPWIN'.
+endif .
+CALL FUNCTION fm_name
+  EXPORTING
+*   ARCHIVE_INDEX              =
+*   ARCHIVE_INDEX_TAB          =
+*   ARCHIVE_PARAMETERS         =
+   CONTROL_PARAMETERS          = LS_PARAMETERS
+*   MAIL_APPL_OBJ              =
+*   MAIL_RECIPIENT             =
+*   MAIL_SENDER                =
+   OUTPUT_OPTIONS              = LS_OPTIONS
+   USER_SETTINGS               = 'X'
+    WA_DISP                    = wa_disp
+    S_ADD                      = s_add
+    S_JOINTS                   = joint
+* IMPORTING
+*   "DOCUMENT_OUTPUT_INFO       =
+*   JOB_OUTPUT_INFO            = job_output_info
+   "JOB_OUTPUT_OPTIONS         =
+ EXCEPTIONS
+   FORMATTING_ERROR           = 1
+   INTERNAL_ERROR             = 2
+   SEND_ERROR                 = 3
+   USER_CANCELED              = 4
+   OTHERS                     = 5
+         .
+IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+ENDIF.
+CLEAR wa_disp .
+
+ENDLOOP.
+
+*     CALL FUNCTION 'HR_IT_DISPLAY_WITH_PDF'
+**        EXPORTING
+**          IV_PDF          =
+*        TABLES
+*          OTF_TABLE       = job_output_info-otfdata .
+
+
+*
+* DATA char_values  type string VALUE '120+200+300' .
+* DATA sum_result TYPE i.
+*" Convert character values to internal table of integers
+*DATA int_values  TYPE TABLE OF char20.
+*data single_value type char20 .
+*SPLIT char_values AT '+' INTO TABLE int_values.
+*
+*" Sum up the values
+*LOOP AT int_values INTO single_value.
+*  sum_result = sum_result + single_value.
+*ENDLOOP.
+*
+*WRITE: / 'Character Values:', char_values,
+*       / 'Sum Result:', sum_result.

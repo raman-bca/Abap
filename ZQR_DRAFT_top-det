@@ -1,0 +1,162 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZQR_DRAFT_DET
+*&---------------------------------------------------------------------*
+
+LOOP AT it_pallet into wa_pallet .
+*     wa_disp-tot1   =  sy-tabix.
+ READ TABLE it_makt into wa_makt with key matnr = wa_pallet-matnr .
+ READ TABLE it_mara into wa_mara with key matnr = wa_pallet-matnr .
+       wa_disp-COILNO =  wa_pallet-COILNO .
+       wa_disp-PALID  =  wa_pallet-PALID  .
+       wa_disp-MATNR  =  wa_pallet-MATNR  .
+       wa_disp-LENGTH =  wa_pallet-LENGTH .
+*       wa_disp-CSTAT  =  wa_pallet-CSTAT  .
+       wa_disp-meins   = wa_mara-meins .
+       wa_disp-CDATE  =  wa_pallet-CDATE  .
+       wa_disp-lgort  =  wa_pallet-lgort  .
+       wa_disp-ctime  =  wa_pallet-ctime  .
+       wa_disp-maktx  =  wa_makt-maktx    .
+
+  gv_day   =  wa_pallet-cdate+6(2).
+  gv_year  =  wa_pallet-cdate+0(4).
+  gv_date  =  wa_pallet-cdate+4(2).
+  concatenate gv_day gv_date gv_year into gv_date separated by '.'.
+  wa_pallet-cdate = gv_date.
+  gv_hr  = wa_pallet-ctime+0(2).
+  gv_mnt = wa_pallet-ctime+4(2).
+  gv_sec = wa_pallet-ctime+2(2).
+  concatenate gv_hr gv_mnt gv_sec into gv_hr separated by ':'.
+  wa_pallet-ctime = gv_hr.
+  wa_disp-ctime  =  wa_pallet-ctime  .
+  wa_disp-CDATE = wa_pallet-cdate .
+   APPEND wa_disp to it_disp .
+   CLEAR : wa_disp ,wa_mara.
+  ENDLOOP.
+SORT IT_DISP by PALID .
+
+call function 'SSF_FUNCTION_MODULE_NAME'
+    exporting
+      formname           = 'ZQR_DRAFT'
+    importing
+      fm_name            = FNAME
+    exceptions
+      no_form            = 1
+      no_function_module = 2
+      others             = 3.
+data : it_loc type zqr_draft1 ,
+      wa_loc type  zqr_draft.
+if s_palid-option = 'BT' ."or s_date-option = 'BT' .
+LOOP AT it_disp INTO wa_disp .
+    wa_temp-coilno  =      wa_disp-COILNO .
+    wa_temp-PALID   =      wa_disp-PALID  .
+    wa_temp-MATNR   =      wa_disp-MATNR  .
+    wa_temp-LENGTH  =      wa_disp-LENGTH .
+    wa_temp-meins   =       wa_disp-meins .
+    wa_temp-CDATE   =      wa_disp-CDATE  .
+    wa_temp-lgort   =      wa_disp-lgort  .
+    wa_temp-ctime   =      wa_disp-ctime  .
+    wa_temp-maktx   =      wa_disp-maktx  .
+    at last .
+      cnt = 2.
+    ENDAT .
+ APPEND : wa_temp to it_temp  .
+ at END OF palid  .
+LOOP AT it_temp into wa_temp.
+   LS_PARAMETERS-NO_OPEN  = 'X'.
+   LS_PARAMETERS-NO_CLOSE = 'X'.
+ if cnt is INITIAL .
+    LS_PARAMETERS-NO_OPEN  = SPACE.
+    LS_PARAMETERS-NO_CLOSE = 'X'.
+    CLEAR cnt .
+    cnt  = CNT + 1 .
+  ENdif .
+if cnt gt 1 .
+    LS_PARAMETERS-NO_OPEN  = 'X'.
+    LS_PARAMETERS-NO_CLOSE = SPACE.
+ENDif.
+  CALL FUNCTION FNAME
+       EXPORTING
+       CONTROL_PARAMETERS         = LS_PARAMETERS
+       OUTPUT_OPTIONS             = LS_OPTIONS
+       USER_SETTINGS              = 'X'
+     tables
+       IT_DISP                    = it_temp
+      EXCEPTIONS
+       FORMATTING_ERROR           = 1
+       INTERNAL_ERROR             = 2
+       SEND_ERROR                 = 3
+       USER_CANCELED              = 4
+       OTHERS                     = 5 .
+DATA :
+lv_errortab   TYPE tsferror.
+ CLEAR  LS_PARAMETERS .
+      CALL FUNCTION 'SSF_READ_ERRORS'
+
+        IMPORTING
+
+          errortab = lv_errortab.
+clear : wa_temp.
+REFRESH : IT_TEMP .
+
+endloop .
+ENDAT.
+ENDLOOP.
+ENDIF .
+data : ckl type int4 .
+if s_palid-option = 'EQ' ."or s_date-option = 'EQ' . "" for single inp by Raman D zencon.
+  LOOP AT it_disp INTO wa_disp .
+
+    wa_temp-coilno  =      wa_disp-COILNO .
+    wa_temp-PALID   =      wa_disp-PALID  .
+    wa_temp-MATNR   =      wa_disp-MATNR  .
+    wa_temp-LENGTH  =      wa_disp-LENGTH .
+  wa_temp-meins   =       wa_disp-meins .
+    wa_temp-CDATE   =      wa_disp-CDATE  .
+    wa_temp-lgort   =      wa_disp-lgort  .
+    wa_temp-ctime   =      wa_disp-ctime  .
+    wa_temp-maktx   =      wa_disp-maktx  .
+    at last .
+      cnt = 2.
+    ENDAT .
+ APPEND : wa_temp to it_temp  .
+ at END OF palid  .
+LOOP AT it_temp into wa_temp.
+DESCRIBE TABLE s_palid[] LINES ckl.
+if ckl gt 1 .
+   LS_PARAMETERS-NO_OPEN  = 'X'.
+   LS_PARAMETERS-NO_CLOSE = 'X'.
+ if cnt is INITIAL .
+    LS_PARAMETERS-NO_OPEN  = SPACE.
+    LS_PARAMETERS-NO_CLOSE = 'X'.
+    CLEAR cnt .
+    cnt  = CNT + 1 .
+  ENdif .
+if cnt gt 1 .
+    LS_PARAMETERS-NO_OPEN  = 'X'.
+    LS_PARAMETERS-NO_CLOSE = SPACE.
+ENDif.
+else.
+    LS_PARAMETERS-NO_DIALOG = 'X'.
+    ls_parameters-PREVIEW   = 'X'.
+endif .
+ CALL FUNCTION FNAME
+       EXPORTING
+       CONTROL_PARAMETERS         = LS_PARAMETERS
+       OUTPUT_OPTIONS             = LS_OPTIONS
+       USER_SETTINGS              = 'X'
+     tables
+       IT_DISP                    = it_temp
+      EXCEPTIONS
+       FORMATTING_ERROR           = 1
+       INTERNAL_ERROR             = 2
+       SEND_ERROR                 = 3
+       USER_CANCELED              = 4
+       OTHERS                     = 5 .
+
+
+ REFRESH : IT_TEMP .
+
+endloop .
+ENDAT.
+ENDLOOP.
+ENDIF .

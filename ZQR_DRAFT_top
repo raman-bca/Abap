@@ -1,0 +1,70 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZQR_DRAFT_TOP
+*&---------------------------------------------------------------------*
+TYPES : BEGIN OF wa_disp ,
+       PALID  type zqr_ipallet-PALID  ,
+       COILNO type zqr_ipallet-COILNO ,
+       MATNR  type zqr_ipallet-MATNR  ,
+       LENGTH type zqr_ipallet-LENGTH ,
+       CDATE  type zqr_ipallet-cdate  ,
+       lgort  type zqr_ipallet-lgort  ,
+       ctime   TYPE zqr_ipallet-ctime ,
+       maktx  type makt-maktx ,
+       meins  TYPE mara-meins ,
+    END OF wa_disp .
+
+TYPES : begin of wa_pallet,
+       COILNO  type zqr_ipallet-COILNO ,
+       PALID   type zqr_ipallet-PALID  ,
+       MATNR   type zqr_ipallet-MATNR  ,
+       LENGTH  type zqr_ipallet-LENGTH ,
+       CSTAT   type zqr_ipallet-CSTAT  ,
+       CDATE   type zqr_ipallet-cdate  ,
+       lgort  type zqr_ipallet-lgort  ,
+       ctime   TYPE zqr_ipallet-ctime ,
+  END OF wa_pallet .
+
+
+types : BEGIN OF wa_MAKT,
+        MATNR TYPE MAKT-MATNR,
+        SPRAS TYPE MAKT-SPRAS,
+        MAKTX TYPE MAKT-MAKTX,
+        MAKTG TYPE MAKT-MAKTG,
+      END OF wa_MAKT.
+
+
+
+
+  DATA : LS_PARAMETERS     TYPE SSFCTRLOP,
+       JOB_OUTPUT_INFO   TYPE SSFCRESCL,
+       GETOTF            TYPE TDGETOTF ,
+       ls_pdf            type tline,
+       LS_OPTIONS        TYPE SSFCOMPOP,
+       FNAME             TYPE RS38L_FNAM,
+       FNAME1            TYPE RS38L_FNAM,
+       CNT               TYPE I,
+       CNT1              TYPE I.
+
+TYPES : BEGIN OF wa_mara ,
+        matnr TYPE mara-matnr ,
+        meins TYPE mara-meins ,
+  END OF wa_mara .
+  data: it_mara TYPE TABLE OF wa_mara ,
+        wa_mara TYPE wa_mara .
+
+  data:   WA_PALLET TYPE  WA_PALLET ,
+          IT_PALLET	TYPE TABLE OF	WA_PALLET ,
+          IT_MAKT   TYPE TABLE OF	WA_MAKT,
+          WA_MAKT   TYPE  WA_MAKT,
+          IT_DISP   TYPE TABLE OF	WA_DISP,
+          WA_DISP   TYPE  WA_DISP,
+          TOT       TYPE  ZQR_IPALLET-LENGTH,
+          TOT2      TYPE  STRING,
+          GV_DAY    TYPE  STRING,
+          GV_YEAR   TYPE  STRING,
+          GV_DATE   TYPE  STRING,
+          GV_HR     TYPE  STRING,
+          GV_MNT    TYPE  STRING,
+          GV_SEC    TYPE  STRING,
+          it_temp   TYPE zqr_draft1 ,
+          wa_temp   TYPE  zqr_draft.

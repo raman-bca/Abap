@@ -1,0 +1,194 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZQR_PRO_SCR
+*&---------------------------------------------------------------------*
+PARAMETERS:
+            s_werks  type zdtrn-PLANT DEFAULT 'UCAB'.
+SELECT-OPTIONS : s_batch for ZDTRN-batch OBLIGATORY .
+data : joint TYPE char10 .
+PARAMETERS:
+            s_joints AS LISTBOX visible length 10,
+            s_add    type CHAR20 ,
+            s_length type ZQR_MAT_DTLS-ZLENGTH ,
+            s_matnr  type zdtrn-matcd .
+SELECT-OPTIONS :
+                 s_date for zdtrn-TRNDATE .
+INITIALIZATION .
+s_date-low  = sy-datum - 1  .
+s_date-high = sy-datum .
+APPEND s_date .
+
+AT SELECTION-SCREEN on VALUE-REQUEST for s_joints .
+AT SELECTION-SCREEN OUTPUT.
+
+DATA: name  TYPE vrm_id,
+     list  TYPE vrm_values,
+     value TYPE vrm_value.
+     name = 'S_JOINTS'.
+     value-key = '1'.
+     value-text = '1'.
+     APPEND value TO list.
+     value-key = '2'.
+     value-text = '2'.
+     APPEND value TO list.
+
+CALL FUNCTION 'VRM_SET_VALUES'
+    EXPORTING
+        id              = name
+        values          = list
+      EXCEPTIONS
+        id_illegal_name = 0
+      OTHERS            = 0.
+
+clear :  s_joints ,
+         s_add    ,
+         s_length ,
+         s_matnr.
+*         s_batch,
+
+
+
+
+
+
+
+
+AT SELECTION-SCREEN .
+  if S_joints IS not INITIAL and s_add is INITIAL .
+   MESSAGE 'Please enter Joint Length'  TYPE 'E'  .
+  ENDIF .
+        REFRESH it_zdtrn.
+
+SELECT
+       PLANT
+       STAGECODE
+       BATCH
+       DOCDATe
+       matcd
+       TRNDATE
+  FROM zdtrn  INTO  TABLE it_zdtrn
+  WHERE batch in s_batch
+  and   stagecode =  '15'
+  and   plant = s_werks and TRNDATE in s_date .
+  IF sy-subrc <> 0 .
+      MESSAGE 'Coil Not Found, Please check the date range' type 'E' .
+  ENDIF.
+  IF s_matnr is not INITIAL.
+     delete  it_zdtrn WHERE matcd ne s_matnr .
+  ENDIF.
+
+SELECT
+      ZWERKS
+      ZMATNR
+      ZSIZE
+      ZTYPE
+      ZCOLOR
+      ZLENGTH
+      ZCUST_CODE
+  from ZQR_MAT_DTLS into TABLE it_zqr
+  FOR ALL ENTRIES IN it_zdtrn
+  WHERE zmatnr = it_zdtrn-matcd.
+IF sy-subrc <> 0.
+    MESSAGE 'Please maintain the material data in ZQR_MAT_DTLS' type 'E' .
+ENDIF.
+
+  joint = s_joints .
+
+SELECT
+       ZWERKS
+       ZCHARG
+       ZMATNR
+       ZTYPE
+       ZLENGTH
+*       ZJOINT
+       ZUSER
+       ZDATE
+       ZTIME
+  from ZQR_LENGTH INTO TABLE it_len
+  for ALL ENTRIES IN it_zdtrn
+  WHERE zmatnr = it_zdtrn-matcd
+  AND   ZWERKS = s_werks.
+  if sy-subrc = 0 .
+  LOOP AT it_len into wa_len .
+    if s_length is INITIAL .
+          s_length = wa_len-ZLENGTH .
+     ENDIF .
+     CLEAR wa_len .
+    ENDLOOP.
+    ENDIF.
+
+LOOP AT it_zqr INTO wa_zqr .
+   if wa_zqr-ZLENGTH is INITIAL or wa_zqr-ZLENGTH = '0'.
+    if wa_zqr-ZLENGTH  is INITIAL and s_length is INITIAL .
+        MESSAGE 'Please enter Cut Length' type 'E'.
+    ENDIF .
+      wa_zqr-ZLENGTH = s_length .
+       IF wa_zqr-ZLENGTH eq '0'or s_length is INITIAL .
+         MESSAGE 'Please enter Cut Length' type 'E'.
+       ENDIF.
+        modify it_zqr FROM  wa_zqr.
+   ENDIF .
+
+ endloop .
+
+if s_length is not INITIAL .
+  LOOP AT it_zdtrn into wa_zdtrn.
+    READ TABLE it_len into wa_len with key zcharg = wa_zdtrn-batch.
+     if  wa_len-ZLENGTH is INITIAL .
+      LOOP AT it_zqr into wa_zqr WHERE ZMATNR = wa_zdtrn-matcd.
+       wa_len1-ZWERKS        = wa_zqr-zwerks.
+       wa_len1-ZCHARG        = wa_zdtrn-BATCH .
+       wa_len1-ZMATNR        = wa_zqr-zmatnr.
+       wa_len1-ZTYPE         = wa_zqr-ztype.
+       wa_len1-ZLENGTH       = wa_zqr-zlength .
+*       wa_len-ZJOINT        = wa_zqr-
+       wa_len1-ZUSER         =  sy-uname .
+       wa_len1-ZDATE         =  sy-datum  .
+       wa_len1-ZTIME         =  sy-uzeit .
+
+  SELECT SINGLE
+   * from ZQR_length INTO wa_len1 WHERE zcharg = wa_zdtrn-BATCH . .
+        if sy-subrc = 0 .
+          UPDATE ZQR_length
+            SET  ZWERKS    =   wa_len1-ZWERKS
+                 ZCHARG    =   wa_len1-ZCHARG
+                 ZMATNR    =   wa_len1-ZMATNR
+                 ZTYPE     =   wa_len1-ZTYPE
+                 ZLENGTH   =   wa_len1-ZLENGTH
+                 ZUSER     =   wa_len1-ZUSER
+                 ZDATE     =   wa_len1-ZDATE
+                 ZTIME     =   wa_len1-ZTIME
+                 where ZCHARG  = wa_len1-ZCHARG   .
+          ELSE .
+           INSERT  : ZQR_length from wa_len1 .
+        endif.
+     ENDLOOP.
+     ENDIF.
+     CLEAR : wa_len .
+ ENDLOOP.
+endif .
+DATA char_values  type string VALUE '120+200+300' .
+DATA sum_result TYPE i.
+" Convert character values to internal table of integers
+DATA int_values  TYPE TABLE OF char20.
+data single_value type char20 .
+
+SPLIT s_add AT '+' INTO TABLE int_values.
+" Sum up the values
+LOOP AT int_values INTO single_value.
+
+  sum_result = sum_result + single_value.
+
+ENDLOOP.
+if s_add is  not INITIAL  .
+  if wa_zqr-zlength ne sum_result .
+    MESSAGE  'Joint Length Missmatch' type 'E' .
+  endif .
+ENDIF .
+
+*At selection-screen output.
+*clear :  s_joints ,
+*         s_add    ,
+*         s_length ,
+*         s_matnr,
+*         s_batch,
+*         s_date .

@@ -1,0 +1,98 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZQR_PRO_TOP
+*&---------------------------------------------------------------------*
+TABLES ZDTRN .
+
+
+
+*TYPES : BEGIN OF wa_zdtrn,
+*  PLANT       TYPE ZDTRN-plant ,
+*  STAGECODE   TYPE ZDTRN-STAGECODE,
+*  BATCH       TYPE zdtrn-BATCH,
+*  DOCDATE     TYPE zdtrn-DOCDATE  ,
+*  MATCD       type zdtrn-MATCD,
+*  ZWERKS      type zqr_mat_dtls-ZWERKS,
+*  ZMATNR      type zqr_mat_dtls-zMATNR    ,
+*  ZSIZE       type zqr_mat_dtls-zSIZE     ,
+*  ZTYPE       type zqr_mat_dtls-zTYPE     ,
+*  ZCOLOR      type zqr_mat_dtls-zCOLOR    ,
+*  ZLENGTH     type zqr_mat_dtls-zLENGTH   ,
+*  ZCUST_CODE  type zqr_mat_dtls-zCUST_CODE,
+*END OF wa_zdtrn.
+
+data: it_disp type TABLE OF ZQR_PR12,  "" structure
+       wa_disp TYPE ZQR_PR12.
+
+data : bin_size type i,
+       fm_name  type tdsfname,
+       xs_pdfd  type xstring,
+       pdf_data type xstring,
+       pdf_size type so_obj_len.
+
+DATA : LS_PARAMETERS     TYPE SSFCTRLOP,
+       JOB_OUTPUT_INFO   TYPE SSFCRESCL,
+       GETOTF            TYPE TDGETOTF ,
+       ls_pdf            type tline,
+       LS_OPTIONS        TYPE SSFCOMPOP,
+       FNAME             TYPE RS38L_FNAM,
+       FNAME1            TYPE RS38L_FNAM,
+       CNT               TYPE I,
+       CNT1              TYPE I.
+data : wa_line like tline,
+       wa_cont type ssfctrlop,
+       wa_outp type ssfcompop,
+       wa_cops type tdsfcopies,
+       wa_info type ssfcrescl,
+       wa_olnk type bapi_doc_drad.
+
+types : BEGIN OF  wa_zdtrn ,
+          PLANT       type zdtrn-PLANT     ,
+          STAGECODE   type zdtrn-STAGECODE ,
+          BATCH       type zdtrn-BATCH     ,
+          DOCDATE     type zdtrn-DOCDATE   ,
+          matcd       type zdtrn-matcd     ,
+          TRNDATE     type zdtrn-TRNDATE   ,
+END OF wa_zdtrn .
+
+
+types  : begin of  wa_zqr ,
+         ZWERKS      type zqr_mat_dtls-ZWERKS,
+         ZMATNR      type zqr_mat_dtls-zMATNR    ,
+         ZSIZE       type zqr_mat_dtls-zSIZE     ,
+         ZTYPE       type zqr_mat_dtls-zTYPE     ,
+         ZCOLOR      type zqr_mat_dtls-zCOLOR    ,
+         ZLENGTH     type zqr_mat_dtls-zLENGTH   ,
+         ZCUST_CODE  type zqr_mat_dtls-zCUST_CODE,
+END OF wa_zqr .
+
+  data : it_zdtrn  TYPE TABLE OF wa_zdtrn ,
+          wa_zdtrn type wa_zdtrn,
+          it_zqr   TYPE TABLE OF wa_zqr ,
+          wa_zqr   type wa_zqr .
+
+types : BEGIN OF  wa_dat ,
+          PLANT     type zdtrn-PLANT     ,
+          STAGECODE type zdtrn-STAGECODE ,
+          BATCH     type zdtrn-BATCH     ,
+          DOCDATE   type zdtrn-DOCDATE   ,
+          matcd     type zdtrn-matcd     ,
+          TRNDATE   TYPE zdtrn-TRNDATE   ,
+END OF wa_dat .
+data : it_zdat type TABLE OF wa_dat ,
+       wa_dat  type wa_dat .
+
+
+types : BEGIN OF  wa_len ,
+         ZWERKS   type   ZQR_LENGTH-ZWERKS ,
+         ZCHARG   type   zqr_length-ZCHARG ,
+         ZMATNR   type   zqr_length-ZMATNR ,
+         ZTYPE    type   zqr_length-ZTYPE  ,
+         ZLENGTH  type   zqr_length-ZLENGTH,
+*         ZJOINT   type   zqr_length-ZJOINT ,
+         ZUSER    type   zqr_length-ZUSER  ,
+         ZDATE    type   zqr_length-ZDATE  ,
+         ZTIME    type   zqr_length-ZTIME  ,
+   END OF wa_len .
+data : it_len TYPE TABLE OF wa_len ,
+       wa_len TYPE wa_len ,
+       wa_len1 type zqr_length .

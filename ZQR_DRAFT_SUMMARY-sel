@@ -1,0 +1,38 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZQR_DRAFT_SUMMARY_SEL
+*&---------------------------------------------------------------------*
+START-OF-SELECTION .
+SELECT
+       COILNO
+       PALID
+       MATNR
+       LENGTH
+       CSTAT
+       CDATE
+       lgort
+       ctime
+  from ZQR_IPALLET into TABLE it_pallet
+  WHERE palid IN s_palid AND CDATE = S_DATE
+   and CSTAT ne 'X'.
+
+* IF s_date is not INITIAL.
+*   DELETE  it_pallet WHERE cdate ne s_date .
+*
+* ENDIF.
+
+*BREAK-POINT .
+SELECT
+      MATNR
+      SPRAS
+      MAKTX
+      MAKTG
+  from makt into table it_makt
+  FOR ALL ENTRIES IN it_pallet
+  WHERE matnr = it_pallet-matnr .
+
+ SELECT
+       matnr
+       meins
+   from mara into TABLE it_mara
+   FOR ALL ENTRIES IN it_pallet
+   WHERE matnr = it_pallet-matnr .
